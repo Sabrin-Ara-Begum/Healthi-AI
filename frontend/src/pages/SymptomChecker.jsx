@@ -1,136 +1,144 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 
 export default function SymptomChecker() {
-  const navigate = useNavigate();
-
   const [input, setInput] = useState("");
+  const [messages, setMessages] = useState(() => {
+    return JSON.parse(localStorage.getItem("symptomChat")) || [];
+  });
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState(null);
-  const [error, setError] = useState("");
+  const navigate = useNavigate();
+  const scrollRef = useRef(null);
 
-  const analyzeSymptoms = async () => {
+  useEffect(() => {
+    localStorage.setItem("symptomChat", JSON.stringify(messages));
+    scrollRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  const sendMessage = async () => {
     if (!input.trim()) return;
 
+    // Add user message
+    const userMsg = { type: "user", text: input };
+    setMessages((prev) => [...prev, userMsg]);
+    setInput("");
     setLoading(true);
-    setError("");
-    setResult(null);
 
     try {
+      // Call backend
       const res = await fetch("http://localhost:5001/api/openrouter/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          message: `
-You are a medical symptom analysis assistant.
-
-User symptoms:
-"${input}"
-
-Respond strictly in this JSON format:
-{
-  "symptoms": "...",
-  "possible_diseases": ["...", "..."],
-  "confidence": "0-100%",
-  "recommended_doctor": "Doctor specialization"
-}
-`
-        }),
+        body: JSON.stringify({ message: input, history: messages }),
       });
 
       if (!res.ok) throw new Error("AI request failed");
 
       const data = await res.json();
 
-      // backend sends { reply: string }
-      const parsed = JSON.parse(data.reply);
+      // Example: parse your AI response (adjust to your backend response structure)
+      const aiMsg = {
+        type: "ai",
+        text: data.reply || "AI could not generate a response",
+        symptoms: data.symptoms || input,
+        possibleDiseases: data.possibleDiseases || ["Not detected"],
+        confidence: data.confidence || "N/A",
+        recommendedDoctor: data.recommendedDoctor || "General Physician",
+      };
 
-      setResult(parsed);
+      setMessages((prev) => [...prev, aiMsg]);
     } catch (err) {
       console.error(err);
-      setError("Unable to analyze symptoms. Please try again.");
+      setMessages((prev) => [
+        ...prev,
+        { type: "ai", text: "Error: Unable to get AI response" },
+      ]);
     } finally {
       setLoading(false);
     }
   };
 
-  const goToFindDoctor = () => {
-    navigate("/find-doctor", {
-      state: { specialty: result.recommended_doctor },
-    });
+  const goToFindDoctor = (doctor) => {
+    navigate("/find-doctor", { state: { specialty: doctor } });
   };
 
   return (
-    <div className="px-8 py-10 max-w-4xl mx-auto">
-      <h1 className="text-3xl font-bold text-gray-800 mb-6">
-        AI-Based Symptom Checker
-      </h1>
+    <div className="px-8 py-10 min-h-screen bg-gray-50">
+      <h1 className="text-3xl font-bold text-gray-800 mb-6">Symptom Checker</h1>
 
-      {/* Input */}
-      <div className="flex gap-2 mb-6">
+      <div className="flex flex-col gap-4">
+        {messages.map((msg, idx) =>
+          msg.type === "user" ? (
+            <div key={idx} className="flex justify-end" ref={scrollRef}>
+              <div className="bg-purple-600 text-white px-4 py-2 rounded-2xl inline-block max-w-[60%] break-words">
+                {msg.text}
+              </div>
+            </div>
+          ) : (
+            <div
+              key={idx}
+              className="bg-white rounded-2xl shadow-md p-6 max-w-2xl w-full mx-auto"
+            >
+              {msg.text && <p className="text-gray-800 mb-4">{msg.text}</p>}
+
+              {msg.symptoms && (
+                <>
+                  <h2 className="font-semibold text-gray-800 mb-1">
+                    Symptoms Entered:
+                  </h2>
+                  <p className="text-gray-500 mb-3">{msg.symptoms}</p>
+
+                  <h2 className="font-semibold text-gray-800 mb-1">
+                    Possible Diseases:
+                  </h2>
+                  <ul className="list-disc ml-6 mb-3">
+                    {msg.possibleDiseases.map((d, i) => (
+                      <li key={i} className="text-gray-500">{d}</li>
+                    ))}
+                  </ul>
+
+                  <h2 className="font-semibold text-gray-800 mb-1">Confidence:</h2>
+                  <p className="text-gray-500 mb-3">{msg.confidence}</p>
+
+                  <h2 className="font-semibold text-gray-800 mb-1">
+                    Recommended Doctor:
+                  </h2>
+                  <p className="text-gray-500 mb-3">{msg.recommendedDoctor}</p>
+
+                  <button
+                    className="bg-purple-600 text-white px-4 py-2 rounded-xl hover:bg-purple-700"
+                    onClick={() => goToFindDoctor(msg.recommendedDoctor)}
+                  >
+                    Visit Find Doctor
+                  </button>
+                </>
+              )}
+            </div>
+          )
+        )}
+      </div>
+
+      {/* Input area */}
+      <div className="mt-6 flex gap-2">
         <input
           type="text"
-          placeholder="Describe your symptoms..."
+          placeholder="Enter your symptoms..."
           className="flex-1 p-3 rounded-l-2xl border border-gray-300 focus:outline-none"
           value={input}
           onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && sendMessage()}
         />
         <button
-          onClick={analyzeSymptoms}
-          className="bg-purple-600 text-white px-6 rounded-r-2xl hover:bg-purple-700 transition"
+          className={`bg-purple-600 text-white px-6 rounded-r-2xl hover:bg-purple-700 transition ${
+            loading ? "opacity-50 cursor-not-allowed" : ""
+          }`}
+          onClick={sendMessage}
+          disabled={loading}
         >
-          {loading ? "Analyzing..." : "Analyze"}
+          {loading ? "..." : "Ask"}
         </button>
       </div>
-
-      {/* Error */}
-      {error && (
-        <div className="text-red-500 mb-4 font-medium">{error}</div>
-      )}
-
-      {/* Result Card */}
-      {result && (
-        <div className="bg-white rounded-2xl shadow-lg p-6 space-y-4">
-          <div>
-            <h3 className="font-semibold text-gray-800">
-              Symptoms Entered
-            </h3>
-            <p className="text-gray-600">{result.symptoms}</p>
-          </div>
-
-          <div>
-            <h3 className="font-semibold text-gray-800">
-              Possible Diseases
-            </h3>
-            <ul className="list-disc ml-6 text-gray-600">
-              {result.possible_diseases.map((d, i) => (
-                <li key={i}>{d}</li>
-              ))}
-            </ul>
-          </div>
-
-          <div>
-            <h3 className="font-semibold text-gray-800">
-              Confidence Level
-            </h3>
-            <p className="text-gray-600">{result.confidence}</p>
-          </div>
-
-          <div>
-            <h3 className="font-semibold text-gray-800">
-              Recommended Doctor
-            </h3>
-            <p className="text-gray-600">{result.recommended_doctor}</p>
-          </div>
-
-          <button
-            onClick={goToFindDoctor}
-            className="bg-purple-600 text-white px-6 py-2 rounded-xl hover:bg-purple-700 transition"
-          >
-            Find {result.recommended_doctor}
-          </button>
-        </div>
-      )}
     </div>
   );
 }
+
