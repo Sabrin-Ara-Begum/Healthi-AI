@@ -29,10 +29,12 @@ export default function Home() {
       desc: "Know medicine usage",
     },
     {
-      title: "Mental Health",
-      icon: <Brain size={32} />,
-      desc: "Mood tracking & AI chat",
-    },
+  title: "Mental Health",
+  icon: <Brain size={32} />,
+  desc: "Mood tracking & AI chat",
+  action: () => navigate("/mental-health"),
+}
+,
     {
       title: "Pregnancy Care",
       icon: <Baby size={32} />,
