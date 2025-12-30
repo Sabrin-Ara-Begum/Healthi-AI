@@ -1,53 +1,70 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import axios from "axios";
 
 export default function Signup() {
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const navigate = useNavigate();
 
-  const handleSignup = async () => {
-    const res = await fetch("http://localhost:5001/api/auth/signup", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
-    });
+  const handleSignup = async (e) => {
+    e.preventDefault();
 
-    if (res.ok) {
-      alert("Signup successful. Please login.");
-      navigate("/login");
-    } else {
-      const data = await res.json();
-      alert(data.message);
+    try {
+      const res = await axios.post("http://localhost:5001/api/auth/signup", {
+        name,
+        email,
+        password,
+      });
+
+      alert("Signup successful 🎉");
+      console.log(res.data);
+    } catch (err) {
+      console.log(err.response?.data);
+      alert(err.response?.data?.message || "Signup failed");
     }
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-purple-50">
-      <div className="bg-white p-8 rounded-2xl shadow-lg w-96">
-        <h2 className="text-2xl font-bold mb-6">Signup</h2>
+      <form
+        onSubmit={handleSignup}
+        className="bg-white p-8 rounded-2xl shadow-lg w-full max-w-md"
+      >
+        <h2 className="text-2xl font-bold text-center mb-6 text-purple-700">
+          Create Account 💜
+        </h2>
+
+        <input
+          type="text"
+          placeholder="Full Name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          className="w-full mb-4 p-3 border rounded-xl"
+        />
 
         <input
           type="email"
           placeholder="Email"
-          className="w-full mb-4 p-3 border rounded-xl"
+          value={email}
           onChange={(e) => setEmail(e.target.value)}
+          className="w-full mb-4 p-3 border rounded-xl"
         />
 
         <input
           type="password"
           placeholder="Password"
-          className="w-full mb-6 p-3 border rounded-xl"
+          value={password}
           onChange={(e) => setPassword(e.target.value)}
+          className="w-full mb-6 p-3 border rounded-xl"
         />
 
         <button
-          onClick={handleSignup}
-          className="w-full bg-purple-600 text-white py-3 rounded-xl"
+          type="submit"
+          className="w-full bg-purple-600 text-white py-3 rounded-xl hover:bg-purple-700"
         >
-          Create Account
+          Sign Up
         </button>
-      </div>
+      </form>
     </div>
   );
 }
