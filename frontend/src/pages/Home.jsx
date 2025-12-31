@@ -1,3 +1,4 @@
+
 import { useNavigate } from "react-router-dom";
 import {
   HeartPulse,
@@ -9,6 +10,7 @@ import {
 
 export default function Home() {
   const navigate = useNavigate();
+  
 
   const features = [
     {
@@ -27,6 +29,7 @@ export default function Home() {
       title: "Tablet Identifier",
       icon: <Pill size={32} />,
       desc: "Know medicine usage",
+
     },
     {
   title: "Mental Health",

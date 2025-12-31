@@ -6,6 +6,8 @@ import FindDoctor from "./pages/FindDoctor";
 import SymptomChecker from "./pages/SymptomChecker";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
+import TabletIdentifier from "./pages/TabletIdentifier";
+
 
 export default function App() {
   return (
@@ -21,6 +23,7 @@ export default function App() {
         <Route path="/mental-health" element={<MentalHealth />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
+      <Route path="/tablet" element={<TabletIdentifier />} />
       </Routes>
     </div>
   );
