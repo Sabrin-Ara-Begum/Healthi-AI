@@ -1,4 +1,4 @@
-# Node
+#Node
 node_modules/
 
 # Environment variables
@@ -8,3 +8,4 @@ backend/.env
 
 # Build outputs
 dist/
+.DS_Store
